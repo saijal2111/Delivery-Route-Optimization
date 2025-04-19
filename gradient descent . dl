@@ -1,0 +1,81 @@
+import numpy as np
+from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+
+# Load dataset
+digits = load_digits()
+X = digits.data / 16  # Normalize (pixel values 0-16)
+y = digits.target.reshape(-1, 1)
+
+# One-hot encode labels
+encoder = OneHotEncoder(sparse=False)
+y_encoded = encoder.fit_transform(y)
+
+# Split
+X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2)
+
+# Initialize network
+input_size = 64  # 8x8 images
+hidden_size = 32
+output_size = 10  # digits 0-9
+
+np.random.seed(42)
+W1 = np.random.randn(input_size, hidden_size)
+b1 = np.zeros((1, hidden_size))
+W2 = np.random.randn(hidden_size, output_size)
+b2 = np.zeros((1, output_size))
+
+# Activation functions
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    return x * (1 - x)
+
+def softmax(z):
+    exp_z = np.exp(z - np.max(z, axis=1, keepdims=True))
+    return exp_z / np.sum(exp_z, axis=1, keepdims=True)
+
+# Training loop
+lr = 0.1
+epochs = 200
+
+for epoch in range(epochs):
+    # Forward pass
+    z1 = X_train @ W1 + b1
+    a1 = sigmoid(z1)
+    z2 = a1 @ W2 + b2
+    a2 = softmax(z2)
+
+    # Loss (cross-entropy)
+    loss = -np.mean(np.sum(y_train * np.log(a2 + 1e-8), axis=1))
+
+    # Backward pass
+    dz2 = a2 - y_train
+    dW2 = a1.T @ dz2 / len(X_train)
+    db2 = np.sum(dz2, axis=0, keepdims=True) / len(X_train)
+
+    dz1 = (dz2 @ W2.T) * sigmoid_derivative(a1)
+    dW1 = X_train.T @ dz1 / len(X_train)
+    db1 = np.sum(dz1, axis=0, keepdims=True) / len(X_train)
+
+    # Update weights (gradient descent)
+    W1 -= lr * dW1
+    b1 -= lr * db1
+    W2 -= lr * dW2
+    b2 -= lr * db2
+
+    if epoch % 20 == 0:
+        print(f"Epoch {epoch} | Loss: {loss:.4f}")
+
+# Evaluate
+z1_test = X_test @ W1 + b1
+a1_test = sigmoid(z1_test)
+z2_test = a1_test @ W2 + b2
+a2_test = softmax(z2_test)
+
+preds = np.argmax(a2_test, axis=1)
+labels = np.argmax(y_test, axis=1)
+accuracy = np.mean(preds == labels)
+print(f"\nTest Accuracy: {accuracy*100:.2f}%")
