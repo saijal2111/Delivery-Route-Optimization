@@ -1,0 +1,29 @@
+import itertools
+
+# Define distance matrix (in km)
+# distance_matrix[i][j] is the distance from i to j
+distance_matrix = [
+    [0, 10, 15, 20, 25],
+    [10, 0, 35, 25, 17],
+    [15, 35, 0, 30, 28],
+    [20, 25, 30, 0, 22],
+    [25, 17, 28, 22, 0]
+]
+
+locations = [1, 2, 3, 4]  # Locations to visit (excluding start/end at 0)
+
+# Try all possible orders
+min_distance = float('inf')
+best_route = []
+
+for perm in itertools.permutations(locations):
+    route = [0] + list(perm) + [0]  # start and end at location 0
+    distance = sum(distance_matrix[route[i]][route[i + 1]] for i in range(len(route) - 1))
+    
+    if distance < min_distance:
+        min_distance = distance
+        best_route = route
+
+# Output
+print("Best Route:", " -> ".join(map(str, best_route)))
+print(f"Total Distance: {min_distance} km")
